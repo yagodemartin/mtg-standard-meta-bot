@@ -1,0 +1,25 @@
+{
+  "name": "mtg-standard-meta-bot",
+  "version": "1.0.0",
+  "description": "Discord bot para gestionar mazos del meta de Standard MTG",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "register": "node src/register-commands.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "mtg",
+    "magic",
+    "standard"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "discord.js": "^14.14.1",
+    "dotenv": "^16.3.1"
+  }
+}
