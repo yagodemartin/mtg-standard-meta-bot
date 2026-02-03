@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const config = require('./config');
 const { startAutoUpdater } = require('./utils/autoUpdater');
+const { initLogger, log } = require('./utils/logger');
 
 // Verificar configuración
 if (!config.token) {
@@ -38,15 +39,20 @@ for (const file of commandFiles) {
 }
 
 // Evento: Bot listo
-client.once('ready', (c) => {
+client.once('ready', async (c) => {
   console.log('═══════════════════════════════════════');
   console.log(`✅ Bot conectado como ${c.user.tag}`);
   console.log(`📊 Servidores: ${c.guilds.cache.size}`);
   console.log('═══════════════════════════════════════');
 
+  // Inicializar logger
+  await initLogger(client);
+  await log('Bot iniciado correctamente', 'success');
+
   // Iniciar actualizador automático (cada 6 horas)
   if (config.guildId) {
     startAutoUpdater(client, config.guildId, 6);
+    await log('Auto-updater iniciado (cada 6 horas)', 'info');
   }
 });
 
@@ -62,9 +68,11 @@ client.on('interactionCreate', async (interaction) => {
   }
 
   try {
+    await log(`${interaction.user.tag} usó /${interaction.commandName}`, 'info');
     await command.execute(interaction);
   } catch (error) {
     console.error(`Error ejecutando ${interaction.commandName}:`, error);
+    await log(`Error en /${interaction.commandName}: ${error.message}`, 'error');
 
     const errorMessage = {
       content: '❌ Hubo un error al ejecutar este comando.',
@@ -82,6 +90,7 @@ client.on('interactionCreate', async (interaction) => {
 // Manejar errores
 process.on('unhandledRejection', (error) => {
   console.error('Error no manejado:', error);
+  log(`Error no manejado: ${error.message}`, 'error');
 });
 
 // Iniciar bot

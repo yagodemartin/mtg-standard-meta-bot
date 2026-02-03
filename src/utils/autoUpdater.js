@@ -1,6 +1,6 @@
 const { ChannelType } = require('discord.js');
 const { getRecentTournaments, getTournamentDecks, getDeckList } = require('./scraper');
-const { toChannelName } = require('./mtg');
+const { log } = require('./logger');
 
 // Almacena torneos ya procesados para no duplicar
 const processedTournaments = new Set();
@@ -29,6 +29,7 @@ async function getOrCreateCategory(guild) {
       name: 'Standard Meta',
       type: ChannelType.GuildCategory,
     });
+    await log('Categoría "Standard Meta" creada', 'success');
   }
 
   return category;
@@ -52,7 +53,7 @@ async function getOrCreateChannel(guild, category, archetype) {
       topic: `${archetype} | MTG Standard Meta`,
     });
 
-    console.log(`📝 Canal creado: #${channelName}`);
+    await log(`Canal creado: #${channelName}`, 'success');
   }
 
   return channel;
@@ -83,11 +84,12 @@ async function postTournamentResults(guild, tournament, decks) {
         `\`\`\`\n${lista.substring(0, 1800)}\n\`\`\``;
 
       await channel.send({ content: message });
+      await log(`Publicado: ${deck.archetype} (#${deck.position}) - ${tournament.name}`, 'tournament');
 
       // Pequeña pausa para no saturar la API
       await new Promise((r) => setTimeout(r, 1000));
     } catch (error) {
-      console.error(`Error posting deck ${deck.archetype}:`, error.message);
+      await log(`Error posting ${deck.archetype}: ${error.message}`, 'error');
     }
   }
 }
@@ -96,13 +98,13 @@ async function postTournamentResults(guild, tournament, decks) {
  * Actualiza el meta con los torneos más recientes
  */
 async function updateMeta(client, guildId) {
-  console.log('🔄 Iniciando actualización del meta...');
+  await log('Iniciando actualización del meta...', 'update');
 
   try {
     const guild = await client.guilds.fetch(guildId);
     const tournaments = await getRecentTournaments();
 
-    console.log(`📊 Encontrados ${tournaments.length} torneos`);
+    await log(`Encontrados ${tournaments.length} torneos`, 'info');
 
     let updated = 0;
 
@@ -112,7 +114,7 @@ async function updateMeta(client, guildId) {
         continue;
       }
 
-      console.log(`📋 Procesando: ${tournament.name}`);
+      await log(`Procesando: ${tournament.name}`, 'update');
 
       const decks = await getTournamentDecks(tournament.url);
 
@@ -129,9 +131,9 @@ async function updateMeta(client, guildId) {
       await new Promise((r) => setTimeout(r, 2000));
     }
 
-    console.log(`✅ Actualización completada. ${updated} torneos procesados.`);
+    await log(`Actualización completada. ${updated} torneos procesados.`, 'success');
   } catch (error) {
-    console.error('❌ Error en actualización:', error.message);
+    await log(`Error en actualización: ${error.message}`, 'error');
   }
 }
 
@@ -140,8 +142,6 @@ async function updateMeta(client, guildId) {
  */
 function startAutoUpdater(client, guildId, intervalHours = 6) {
   const intervalMs = intervalHours * 60 * 60 * 1000;
-
-  console.log(`⏰ Auto-updater iniciado. Intervalo: ${intervalHours} horas`);
 
   // Primera actualización después de 1 minuto
   setTimeout(() => {
