@@ -1,15 +1,6 @@
-// Solo cargar dotenv si existe el archivo .env (desarrollo local)
-try {
-  require('dotenv').config();
-} catch (e) {
-  // En Railway no hay .env, las variables vienen del entorno
-}
-
-// Debug: mostrar qué variables hay
-console.log('=== DEBUG CONFIG ===');
-console.log('DISCORD_TOKEN exists:', !!process.env.DISCORD_TOKEN);
-console.log('CLIENT_ID:', process.env.CLIENT_ID);
-console.log('GUILD_ID:', process.env.GUILD_ID);
+// Debug: mostrar TODAS las variables de entorno
+console.log('=== ALL ENV VARS ===');
+console.log(JSON.stringify(process.env, null, 2));
 console.log('====================');
 
 module.exports = {
