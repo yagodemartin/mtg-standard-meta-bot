@@ -120,9 +120,29 @@ async function getDeckList(deckUrl) {
   }
 }
 
+/**
+ * Obtiene la imagen de preview de un mazo
+ */
+async function getDeckImage(deckId) {
+  try {
+    const html = await fetchPage(`https://www.mtggoldfish.com/deck/visual/${deckId}`);
+
+    // Buscar og:image
+    const ogMatch = html.match(/og:image[^>]*content="([^"]+)"/);
+    if (ogMatch) {
+      return ogMatch[1];
+    }
+
+    return null;
+  } catch (error) {
+    return null;
+  }
+}
+
 module.exports = {
   getRecentTournaments,
   getTournamentDecks,
   getDeckList,
+  getDeckImage,
   fetchPage,
 };

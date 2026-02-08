@@ -1,5 +1,5 @@
-const { ChannelType, MessageFlags } = require('discord.js');
-const { getRecentTournaments, getTournamentDecks, getDeckList } = require('./scraper');
+const { ChannelType, MessageFlags, EmbedBuilder } = require('discord.js');
+const { getRecentTournaments, getTournamentDecks, getDeckList, getDeckImage } = require('./scraper');
 const { log } = require('./logger');
 
 // Almacena torneos ya procesados para no duplicar
@@ -75,15 +75,47 @@ async function postTournamentResults(guild, tournament, decks) {
         lista = await getDeckList(deck.deckUrl);
       }
 
-      const message =
-        `## 🏆 ${tournament.name}\n` +
-        `**Posición:** #${deck.position}\n` +
-        `**Arquetipo:** ${deck.archetype}\n` +
-        `**Fecha:** ${fecha}\n` +
-        `**Fuente:** [MTGGoldfish](${tournament.url})\n\n` +
-        `\`\`\`\n${lista.substring(0, 1800)}\n\`\`\``;
+      // Extraer ID del mazo para la URL visual
+      const deckId = deck.deckUrl ? deck.deckUrl.match(/\/deck\/(\d+)/)?.[1] : null;
+      const visualUrl = deckId ? `https://www.mtggoldfish.com/deck/visual/${deckId}` : null;
 
-      await channel.send({ content: message, flags: MessageFlags.SuppressNotifications });
+      // Obtener imagen del mazo
+      const deckImage = deckId ? await getDeckImage(deckId) : null;
+
+      // Crear embed visual
+      const embed = new EmbedBuilder()
+        .setColor(0xE4A101) // Color dorado MTG
+        .setTitle(`🏆 ${tournament.name}`)
+        .addFields(
+          { name: '📍 Posición', value: `#${deck.position}`, inline: true },
+          { name: '🃏 Arquetipo', value: deck.archetype, inline: true },
+          { name: '📅 Fecha', value: fecha, inline: true }
+        )
+        .setFooter({ text: 'Fuente: MTGGoldfish' })
+        .setTimestamp();
+
+      // Añadir imagen si existe
+      if (deckImage) {
+        embed.setThumbnail(deckImage);
+      }
+
+      // Añadir enlaces
+      if (visualUrl) {
+        embed.setURL(visualUrl);
+        embed.addFields({
+          name: '🔗 Enlaces',
+          value: `[📸 **VER MAZO VISUAL**](${visualUrl}) | [📋 Ver Lista](${deck.deckUrl})`,
+          inline: false
+        });
+      }
+
+      // Añadir lista de cartas (truncada si es muy larga)
+      if (lista && lista !== 'Lista no disponible') {
+        const listaCorta = lista.length > 1000 ? lista.substring(0, 1000) + '\n...' : lista;
+        embed.addFields({ name: '📜 Lista', value: `\`\`\`\n${listaCorta}\n\`\`\``, inline: false });
+      }
+
+      await channel.send({ embeds: [embed], flags: MessageFlags.SuppressNotifications });
       await log(`Publicado: ${deck.archetype} (#${deck.position}) - ${tournament.name}`, 'tournament');
 
       // Pequeña pausa para no saturar la API
