@@ -1,11 +1,23 @@
 const https = require('https');
 
 /**
- * Hace una petición HTTPS y devuelve el HTML
+ * Hace una petición HTTPS y devuelve el HTML (sigue redirects)
  */
-function fetchPage(url) {
+function fetchPage(url, maxRedirects = 5) {
   return new Promise((resolve, reject) => {
+    if (maxRedirects <= 0) {
+      return reject(new Error('Too many redirects'));
+    }
+
     https.get(url, (res) => {
+      // Seguir redirects 301/302
+      if (res.statusCode === 301 || res.statusCode === 302) {
+        const redirectUrl = res.headers.location;
+        if (redirectUrl) {
+          return resolve(fetchPage(redirectUrl, maxRedirects - 1));
+        }
+      }
+
       let data = '';
       res.on('data', (chunk) => (data += chunk));
       res.on('end', () => resolve(data));
@@ -49,30 +61,19 @@ async function getTournamentDecks(tournamentUrl) {
     const html = await fetchPage(tournamentUrl);
     const decks = [];
 
-    // Buscar mazos y sus posiciones
-    const deckRegex = /class="tournament-decklist"[\s\S]*?href="(\/archetype\/[^"]+)"[^>]*>([^<]+)<[\s\S]*?href="(\/deck\/[^"]+)"/g;
+    // Buscar mazos en la tabla de resultados del torneo
+    // Estructura: <tr class='tournament-decklist-odd/even'>...<a href="/deck/123">Archetype Name</a>
+    const deckRegex = /tournament-decklist-(?:odd|even)[\s\S]*?<a\s+href="(\/deck\/\d+)">([^<]+)<\/a>/g;
     let match;
     let position = 1;
 
-    while ((match = deckRegex.exec(html)) !== null && position <= 4) {
+    while ((match = deckRegex.exec(html)) !== null && position <= 8) {
       decks.push({
         position,
         archetype: match[2].trim(),
-        deckUrl: 'https://www.mtggoldfish.com' + match[3],
+        deckUrl: 'https://www.mtggoldfish.com' + match[1],
       });
       position++;
-    }
-
-    // Método alternativo si el anterior no funciona
-    if (decks.length === 0) {
-      const altRegex = /deck-tile-description[\s\S]*?href="[^"]*\/archetype\/([^"]+)"[^>]*>([^<]+)</g;
-      while ((match = altRegex.exec(html)) !== null && decks.length < 4) {
-        decks.push({
-          position: decks.length + 1,
-          archetype: match[2].trim(),
-          deckUrl: null,
-        });
-      }
     }
 
     return decks;
@@ -89,15 +90,23 @@ async function getDeckList(deckUrl) {
   try {
     const html = await fetchPage(deckUrl);
 
-    // Extraer lista en formato texto
-    const listMatch = html.match(/class="deck-view-decklist"[\s\S]*?<textarea[^>]*>([\s\S]*?)<\/textarea>/);
-    if (listMatch) {
-      return listMatch[1].trim();
+    // Método 1: Extraer del input hidden deck_input[deck]
+    const inputMatch = html.match(/name="deck_input\[deck\]"[^>]*value="([^"]+)"/);
+    if (inputMatch) {
+      // Decodificar entidades HTML
+      return inputMatch[1]
+        .replace(/&#39;/g, "'")
+        .replace(/&#x27;/g, "'")
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .trim();
     }
 
-    // Método alternativo: extraer cartas individuales
+    // Método 2: Extraer cartas individuales de la tabla
     let deckList = '';
-    const cardRegex = /data-card-id="[^"]*"[\s\S]*?class="deck-col-qty"[^>]*>(\d+)<[\s\S]*?class="deck-col-card"[^>]*>[\s\S]*?>([^<]+)</g;
+    const cardRegex = /deck-col-qty[^>]*>(\d+)<[\s\S]*?deck-col-card[^>]*>[\s\S]*?data-card-name="([^"]+)"/g;
     let match;
 
     while ((match = cardRegex.exec(html)) !== null) {
