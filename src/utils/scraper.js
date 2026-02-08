@@ -121,7 +121,29 @@ async function getDeckList(deckUrl) {
 }
 
 /**
- * Obtiene la imagen de preview de un mazo
+ * Obtiene screenshot del mazo visual usando Microlink
+ */
+async function getDeckVisualScreenshot(deckId) {
+  try {
+    const visualUrl = `https://www.mtggoldfish.com/deck/visual/${deckId}`;
+    const apiUrl = `https://api.microlink.io/?url=${encodeURIComponent(visualUrl)}&screenshot=true&waitForTimeout=3000`;
+
+    const response = await fetchPage(apiUrl);
+    const data = JSON.parse(response);
+
+    if (data.status === 'success' && data.data?.screenshot?.url) {
+      return data.data.screenshot.url;
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error getting deck screenshot:', error);
+    return null;
+  }
+}
+
+/**
+ * Obtiene la imagen de preview de un mazo (carta principal)
  */
 async function getDeckImage(deckId) {
   try {
@@ -144,5 +166,6 @@ module.exports = {
   getTournamentDecks,
   getDeckList,
   getDeckImage,
+  getDeckVisualScreenshot,
   fetchPage,
 };

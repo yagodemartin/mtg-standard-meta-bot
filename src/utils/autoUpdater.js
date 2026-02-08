@@ -1,5 +1,5 @@
 const { ChannelType, MessageFlags, EmbedBuilder } = require('discord.js');
-const { getRecentTournaments, getTournamentDecks, getDeckList, getDeckImage } = require('./scraper');
+const { getRecentTournaments, getTournamentDecks, getDeckList, getDeckVisualScreenshot } = require('./scraper');
 const { log } = require('./logger');
 
 // Almacena torneos ya procesados para no duplicar
@@ -79,8 +79,8 @@ async function postTournamentResults(guild, tournament, decks) {
       const deckId = deck.deckUrl ? deck.deckUrl.match(/\/deck\/(\d+)/)?.[1] : null;
       const visualUrl = deckId ? `https://www.mtggoldfish.com/deck/visual/${deckId}` : null;
 
-      // Obtener imagen del mazo
-      const deckImage = deckId ? await getDeckImage(deckId) : null;
+      // Obtener screenshot del mazo visual
+      const screenshotUrl = deckId ? await getDeckVisualScreenshot(deckId) : null;
 
       // Crear embed visual
       const embed = new EmbedBuilder()
@@ -94,9 +94,9 @@ async function postTournamentResults(guild, tournament, decks) {
         .setFooter({ text: 'Fuente: MTGGoldfish' })
         .setTimestamp();
 
-      // Añadir imagen si existe
-      if (deckImage) {
-        embed.setThumbnail(deckImage);
+      // Añadir screenshot del mazo visual como imagen grande
+      if (screenshotUrl) {
+        embed.setImage(screenshotUrl);
       }
 
       // Añadir enlaces
