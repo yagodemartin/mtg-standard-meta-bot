@@ -154,7 +154,15 @@ function startAutoUpdater(client, guildId, intervalHours = 6) {
   }, intervalMs);
 }
 
+/**
+ * Limpia la lista de torneos procesados
+ */
+function clearProcessedTournaments() {
+  processedTournaments.clear();
+}
+
 module.exports = {
   updateMeta,
   startAutoUpdater,
+  clearProcessedTournaments,
 };
