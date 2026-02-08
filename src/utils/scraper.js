@@ -126,7 +126,7 @@ async function getDeckList(deckUrl) {
 async function getDeckVisualScreenshot(deckId) {
   try {
     const visualUrl = `https://www.mtggoldfish.com/deck/visual/${deckId}`;
-    const apiUrl = `https://api.microlink.io/?url=${encodeURIComponent(visualUrl)}&screenshot=true&waitForTimeout=3000`;
+    const apiUrl = `https://api.microlink.io/?url=${encodeURIComponent(visualUrl)}&screenshot=true&screenshot.fullPage=true&viewport.width=1200&viewport.height=2000&waitForTimeout=5000`;
 
     const response = await fetchPage(apiUrl);
     const data = JSON.parse(response);
