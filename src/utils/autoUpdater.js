@@ -116,7 +116,12 @@ async function updateMeta(client, guildId) {
 
       await log(`Procesando: ${tournament.name}`, 'update');
 
-      const decks = await getTournamentDecks(tournament.url);
+      let decks = await getTournamentDecks(tournament.url);
+
+      // Solo los top 3 para Challenges, todos para Leagues
+      if (tournament.name.toLowerCase().includes('challenge')) {
+        decks = decks.slice(0, 3);
+      }
 
       if (decks.length > 0) {
         await postTournamentResults(guild, tournament, decks);
