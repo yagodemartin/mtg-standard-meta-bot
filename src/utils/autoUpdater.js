@@ -1,4 +1,4 @@
-const { ChannelType } = require('discord.js');
+const { ChannelType, MessageFlags } = require('discord.js');
 const { getRecentTournaments, getTournamentDecks, getDeckList } = require('./scraper');
 const { log } = require('./logger');
 
@@ -83,7 +83,7 @@ async function postTournamentResults(guild, tournament, decks) {
         `**Fuente:** [MTGGoldfish](${tournament.url})\n\n` +
         `\`\`\`\n${lista.substring(0, 1800)}\n\`\`\``;
 
-      await channel.send({ content: message });
+      await channel.send({ content: message, flags: MessageFlags.SuppressNotifications });
       await log(`Publicado: ${deck.archetype} (#${deck.position}) - ${tournament.name}`, 'tournament');
 
       // Pequeña pausa para no saturar la API
